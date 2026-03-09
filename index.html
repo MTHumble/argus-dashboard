@@ -869,23 +869,27 @@ async function send(){
   const txt=inp.value.trim();
   if(!txt||S.thinking) return;
   inp.value='';chat('user',txt);
-  if(!CFG.anthropic){chat('argus','Anthropic key not set — add in settings ⚙');return;}
   S.thinking=true;showThink();
   const critOpen=S.tasks.filter(t=>!t.done&&t.priority==='critical').map(t=>t.name).join(', ');
+  // Route through Supabase edge function to avoid CORS
+  const endpoint = `${CFG.url}/functions/v1/argus-chat`;
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
+    const res=await fetch(endpoint,{
       method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':CFG.anthropic,'anthropic-version':'2023-06-01'},
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':'Bearer '+CFG.key
+      },
       body:JSON.stringify({
         model:'claude-sonnet-4-20250514',max_tokens:500,
-        system:`You are Argus — AI operating layer for Applied Stoicism Labs, Steve Humbert, Burleson TX. Phase 1: 3D printing micro-factory. Get a paying customer. Redirect Phase drift clearly but not harshly. Critical open: ${critOpen||'none'}. Key people: Erin (girlfriend), Sam (brother, ASL work), Killian (son, internship URGENT March/April), Kris (sister, Juneau→Burleson end May, surgery), Josh Hayes (Kris's son). No filler. No preamble. Direct. One question at a time.`,
+        system:`You are Argus — AI operating layer for Applied Stoicism Labs, Steve Humbert, Burleson TX. Phase 1: 3D printing micro-factory. Get a paying customer. Redirect Phase drift clearly but not harshly. Critical open: ${critOpen||'none'}. Key people: Erin (girlfriend), Sam (brother, ASL work), Killian (son, internship URGENT March/April), Kris (sister, Juneau→Burleson end May, surgery), Josh Hayes (Kris's son), Des/Walter/Tommy/Desmond (nephew, involved in printing ops). No filler. No preamble. Direct. One question at a time.`,
         messages:[...S.history.slice(-8).filter(m=>m.content!==txt),{role:'user',content:txt}]
       })
     });
     const d=await res.json();
     hideThink();
-    chat('argus',d.content?.[0]?.text||'API error.');
-  }catch(e){hideThink();chat('argus','API failed: '+e.message);}
+    chat('argus',d.content?.[0]?.text||'API error — check edge function logs.');
+  }catch(e){hideThink();chat('argus','Connection failed: '+e.message);}
   S.thinking=false;
 }
 
