@@ -872,7 +872,7 @@ async function send(){
   S.thinking=true;showThink();
   const critOpen=S.tasks.filter(t=>!t.done&&t.priority==='critical').map(t=>t.name).join(', ');
   // Route through Supabase edge function to avoid CORS
-  const endpoint = `${CFG.url}/functions/v1/argus-chat`;
+  const endpoint = `${CFG.url}/functions/v1/bright-endpoint`;
   try{
     const res=await fetch(endpoint,{
       method:'POST',
